@@ -7,4 +7,14 @@ PERMISSIONS = {
 }
 
 def has_permission(user, permission):
+    """
+    Check if a user has a specific permission.
+
+    Args:
+        user (User): The user to check the permission for.
+        permission (str): The permission to check.
+
+    Returns:
+        bool: True if the user has the permission, False otherwise.
+    """
     return permission in PERMISSIONS.get(user.department.name, [])

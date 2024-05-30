@@ -16,6 +16,10 @@ class Employee(Base):
     department_id = Column(Integer, ForeignKey('departments.id'))
     department = relationship("Department", back_populates="employees")
 
+    customer = relationship("Customer", back_populates="contact")
+    contract = relationship("Contract", back_populates="employee")
+    event = relationship("Event", back_populates="employee")
+
     def set_password(self, password):
         self.password = ph.hash(password)
 

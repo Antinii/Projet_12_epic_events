@@ -4,7 +4,7 @@ from texttable import Texttable
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
-from views.employees_view import create_employee_view, login_view
+from employees_view import create_user_view, login_view
 
 def main():
     """
@@ -21,7 +21,7 @@ def main():
         choice = input("Enter your choice: ")
 
         if choice == '1':
-            create_employee_view()
+            create_user_view()
         elif choice == '2':
             login_view()
         elif choice == '3':

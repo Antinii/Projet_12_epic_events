@@ -13,7 +13,9 @@ class Contract(Base):
     is_signed = Column(Boolean, default=False)
 
     customer_id = Column(Integer, ForeignKey('customers.id'))
-    customer = relationship("Customer", back_populates="contracts")
+    customer = relationship("Customer", back_populates="contract")
 
     employee_id = Column(Integer, ForeignKey('employees.id'))
-    employee = relationship("Employee", back_populates="contracts")
+    employee = relationship("Employee", back_populates="contract")
+
+    event = relationship("Event", back_populates="contract")

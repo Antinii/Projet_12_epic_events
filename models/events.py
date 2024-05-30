@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Date
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -8,17 +8,17 @@ class Event(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100))
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
+    start_date = Column(Date)
+    end_date = Column(Date)
     location = Column(String(200))
     attendees = Column(Integer)
     notes = Column(Text)
     
     contract_id = Column(Integer, ForeignKey('contracts.id'))
-    contract = relationship("Contract", back_populates="events")
+    contract = relationship("Contract", back_populates="event")
     
     customer_id = Column(Integer, ForeignKey('customers.id'))
-    customer = relationship("Customer", back_populates="events")
+    customer = relationship("Customer", back_populates="event")
     
     employee_id = Column(Integer, ForeignKey('employees.id'))
-    employee = relationship("Employee", back_populates="events")
+    employee = relationship("Employee", back_populates="event")
