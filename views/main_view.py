@@ -31,7 +31,7 @@ def main():
         elif choice == '2':
             login_view()
         elif choice == '3':
-            console.print("Exiting the app... Goodbye! :smiley:", style="red")
+            console.print("Exiting the app... Goodbye! :smiley:", style="yellow")
             quit()
         else:
             console.print("\nInvalid choice, try again\n", style="bold red")

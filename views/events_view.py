@@ -14,7 +14,6 @@ from config.auth import get_logged_in_user
 from config.decorators import permission_required
 from rich.console import Console
 from rich.table import Table
-from datetime import datetime
 import config.session_manager as session_manager
 
 engine = create_engine(DATABASE_URL)
@@ -93,7 +92,8 @@ def create_event_view():
     customer_id = get_valid_id(session, "Enter customer ID: ", get_customers, Customer, allow_blank=False)
     employee_id = user.id
 
-    result = create_event(name, start_date, end_date, location, attendees, notes, contract_id, customer_id, employee_id)
+    result = create_event(name, start_date, end_date, location, attendees,
+                          notes, contract_id, customer_id, employee_id)
     if result == "Event created successfully!":
         console.print(result, style="bold green")
     else:
@@ -128,19 +128,16 @@ def update_event_view():
         str: Result message indicating the success or failure of the event update.
     """
     console = Console()
-    token = session_manager.get_current_token()
-    user, _ = get_logged_in_user(token)
+    user, _ = get_logged_in_user(session_manager.get_current_token())
+    if not user:
+        console.print("Please login", style="bold red")
+        return
     
     while True:
         print("Choose the event to update:")
         get_events()
 
-        event_id = (input("Enter the event ID to update:"))
-        if not event_id.isdigit():
-            console.print("Please enter a valid numeric ID.", style="bold red")
-            continue
-
-        event_id = int(event_id)
+        event_id = get_valid_int("Enter the event ID to update:")
         event = session.query(Event).get(event_id)
         if not event:
             console.print("Event ID not found. Please choose an existing ID from the list.", style="bold red")
@@ -148,75 +145,19 @@ def update_event_view():
 
         name = input("Enter the new name of the event (leave blank to keep current): ")
 
-        while True:
-            try:
-                start_date = input("Enter new start date (YYYY-MM-DD, leave blank to keep current): ")
-                if start_date:
-                    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-                break
-            except ValueError:
-                console.print("Invalid date format. Please enter the date in YYYY-MM-DD format.", style="bold red")
-
-        while True:
-            try:
-                end_date = input("Enter new end date (YYYY-MM-DD, leave blank to keep current): ")
-                if end_date:
-                    end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-                break
-            except ValueError:
-                console.print("Invalid date format. Please enter the date in YYYY-MM-DD format.", style="bold red")
+        start_date = get_valid_date("Enter new start date (YYYY-MM-DD, leave blank to keep current): ", allow_blank=True)
+        end_date = get_valid_date("Enter new end date (YYYY-MM-DD, leave blank to keep current): ", allow_blank=True)
 
         location = input("Enter new location (leave blank to keep current): ")
-        attendees = input("Enter new number of attendees (leave blank to keep current): ")
+        attendees = get_valid_int("Enter new number of attendees (leave blank to keep current): ", allow_blank=True)
         notes = input("Enter new notes (leave blank to keep current): ")
 
-        while True:
-            get_contracts()
-            contract_id = input("Enter new contract ID (leave blank to keep current): ")
-            if contract_id == "":
-                contract_id = event.contract_id
-                break
-            if not contract_id.isdigit():
-                console.print("Please enter a valid numeric ID.", style="bold red")
-                continue
-            contract_id = int(contract_id)
-            contract = session.query(Contract).get(contract_id)
-            if not contract:
-                console.print("Contract ID not found. Please choose an existing ID from the list.", style="bold red")
-                continue
-            break
-        
-        while True:
-            get_customers()
-            customer_id = input("Enter new customer ID (leave blank to keep current): ")
-            if customer_id == "":
-                customer_id = event.customer_id
-                break
-            if not customer_id.isdigit():
-                console.print("Please enter a valid numeric ID.", style="bold red")
-                continue
-            customer_id = int(customer_id)
-            customer = session.query(Customer).get(customer_id)
-            if not customer:
-                console.print("Customer ID not found. Please choose an existing ID from the list.", style="bold red")
-                continue
-            break
-        
-        while True:       
-            get_employees()
-            employee_id = input("Enter new employee ID (leave blank to keep current): ")
-            if employee_id == "":
-                employee_id = event.employee_id
-                break
-            if not employee_id.isdigit():
-                console.print("Please enter a valid numeric ID.", style="bold red")
-                continue
-            employee_id = int(employee_id)
-            employee = session.query(Employee).get(employee_id)
-            if not employee:
-                console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
-                continue
-            break
+        contract_id = get_valid_id(session, "Enter new contract ID (leave blank to keep current): ",
+                                    get_contracts, Contract, allow_blank=True, current_id=event.contract_id)
+        customer_id = get_valid_id(session, "Enter new customer ID (leave blank to keep current): ",
+                                    get_customers, Customer, allow_blank=True, current_id=event.customer_id)
+        employee_id = get_valid_id(session, "Enter new employee ID (leave blank to keep current): ",
+                                    get_employees, Employee, allow_blank=True, current_id=event.employee_id)
 
         start_date = start_date if start_date else None
         end_date = end_date if end_date else None

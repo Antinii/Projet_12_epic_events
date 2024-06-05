@@ -3,6 +3,7 @@ from controllers.employees_controller import create_employee, get_employees
 from controllers.departments_controller import get_departments
 from controllers.employees_controller import login_employee, create_employee, update_employee, delete_employee
 from models.employees import Employee
+from models.departments import Department
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from views.contracts_view import manage_contracts_menu
@@ -10,6 +11,7 @@ from views.customers_view import manage_customers_menu
 from views.events_view import manage_events_menu
 from config.auth import get_logged_in_user
 from config.settings import DATABASE_URL
+from config.helper_functions import get_valid_password, get_valid_int, get_valid_id
 from rich.console import Console
 from rich.table import Table
 from config.decorators import permission_required
@@ -82,29 +84,10 @@ def logged_in_menu(name):
         elif choice == '4':
             manage_events_menu()
         elif choice == '5':
-            print(f"Goodbye, {name}!")
+            console.print(f"Goodbye, {name}!", style="yellow")
             break
         else:
             console.print("\nInvalid choice, try again\n", style="bold red")
-
-def display_departments(departments):
-    """
-    Display a list of departments.
-
-    Args:
-        departments (list): List of departments to display.
-    """
-    console = Console()
-
-    table = Table(title="List of all Departments", show_header=True, header_style="magenta", show_lines=True)
-
-    table.add_column("ID", justify="center")
-    table.add_column("Department Name", justify="left")
-
-    for dept in departments:
-        table.add_row(str(dept.id), dept.name)
-
-    console.print(table)
 
 def create_user_view():
     """
@@ -125,20 +108,13 @@ def create_user_view():
     """
     console = Console()
     name = input("Enter your name: ")
-
-    while True:
-        password = getpass.getpass("Enter your password: ")
-        password_confirm = getpass.getpass("Confirm your password: ")
-        if password == password_confirm:
-            break
-        else:
-            console.print("Passwords do not match. Please try again.", style="bold red")
-
-    departments = get_departments()
-    display_departments(departments)
-    department_id = input("Please select your department ID: ")
+    password = get_valid_password()
+    department_id = get_valid_id(session, "Please select your department ID: ", get_departments, Department, allow_blank=False)
     result = create_employee(name, password, department_id)
-    print(result)
+    if result == "User created successfully !":
+        console.print(result, style="bold green")
+    else:
+        console.print(result, style="bold red")
 
 def login_view():
     """
@@ -186,26 +162,20 @@ def create_new_employee():
         str: Result message indicating the success or failure of the employee creation.
     """
     console = Console()
-    user = get_logged_in_user(session_manager.get_current_token())
+    user, _ = get_logged_in_user(session_manager.get_current_token())
     if not user:
         console.print("Please login.", style="bold red")
         return
     
     name = input("Enter the employee name: ")
-
-    while True:
-        password = getpass.getpass("Enter the employee password: ")
-        password_confirm = getpass.getpass("Confirm the password: ")
-        if password == password_confirm:
-            break
-        else:
-            console.print("Passwords do not match. Please try again.", style="bold red")
-
-    departments = get_departments()
-    display_departments(departments)
-    department_id = input("Please select the employee department ID: ")
+    password = get_valid_password()
+    department_id = get_valid_id(session, "Please select the employee department ID: ", get_departments, Department, allow_blank=False)
+    
     result = create_employee(name, password, department_id)
-    print(result)
+    if result == "User created successfully !":
+        console.print(result, style="bold green")
+    else:
+        console.print(result, style="bold red")
 
 @permission_required('update_employees')
 def update_employee_view():
@@ -229,15 +199,16 @@ def update_employee_view():
         str: Result message indicating the success or failure of the employee update.
     """
     console = Console()
+    user, _ = get_logged_in_user(session_manager.get_current_token())
+    if not user:
+        console.print("Please login.", style="bold red")
+        return
+    
     while True:
         print("Choose the employee to update:")
         get_employees()
 
-        employee_id = (input("Enter the employee ID to update: "))
-        if not employee_id.isdigit():
-            console.print("Please enter a valid numeric ID.", style="bold red")
-            continue
-        employee_id = int(employee_id)
+        employee_id = get_valid_int("Enter the employee ID to update: ")
         employee = session.query(Employee).get(employee_id)
         if not employee:
             console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
@@ -258,14 +229,15 @@ def update_employee_view():
             else:
                 break
 
-        departments = get_departments()
-        display_departments(departments)
-        department_id = input("Enter new department ID (leave blank to keep current): ")
+        department_id = get_valid_id(session, "Enter new department ID (leave blank to keep current): ",
+                                     get_departments, Department, allow_blank=True, current_id=employee.department_id)
 
         department_id = int(department_id) if department_id else None
-
         result = update_employee(employee_id, name if name else None, password if password else None, department_id)
-        print(result)
+        if result == "Employee updated successfully!":
+            console.print(result, style="bold green")
+        else:
+            console.print(result, style="bold red")
         break
 
 @permission_required('delete_employees')
@@ -306,7 +278,7 @@ def delete_employee_view():
         confirmation = input(f"Are you sure you want to delete the employee with ID {employee_id}? (yes/no): ")
         if confirmation.lower() == 'yes':
             result = delete_employee(employee_id)
-            print(result)
+            console.print(result, style="bold green")
         else:
             console.print("Deletion cancelled.", style="bold red")
         break

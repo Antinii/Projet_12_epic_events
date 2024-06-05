@@ -20,7 +20,7 @@ def create_employee(name, password, department_id):
     new_employee.set_password(password)
     session.add(new_employee)
     session.commit()
-    return "User created successfully !!!"
+    return "User created successfully !"
 
 def login_employee(name, password):
     employee = session.query(Employee).filter_by(name=name).first()

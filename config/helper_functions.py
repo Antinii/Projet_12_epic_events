@@ -1,4 +1,5 @@
 from datetime import datetime
+import getpass
 from rich.console import Console
 
 def get_valid_date(prompt, allow_blank=False):
@@ -38,3 +39,13 @@ def get_valid_id(session, prompt, get_function, entity_name, allow_blank=False, 
                 console.print(f"{entity_name.__name__} ID not found. Please choose an existing ID from the list.", style="bold red")
         else:
             console.print("Please enter a valid numeric ID.", style="bold red")
+
+def get_valid_password():
+    console = Console()
+    while True:
+        password = getpass.getpass("Enter the password: ")
+        password_confirm = getpass.getpass("Confirm the password: ")
+        if password == password_confirm:
+            return password
+        else:
+            console.print("Passwords do not match. Please try again.", style="bold red")
