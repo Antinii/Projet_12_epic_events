@@ -1,4 +1,3 @@
-from texttable import Texttable
 from controllers.events_controller import get_events, create_event, update_event
 from controllers.customers_controller import get_customers
 from controllers.contracts_controller import get_contracts
@@ -9,25 +8,35 @@ from models.employees import Employee
 from models.events import Event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from settings import DATABASE_URL
-from auth import get_logged_in_user
-from decorators import permission_required
+from config.helper_functions import get_valid_date, get_valid_int, get_valid_id
+from config.settings import DATABASE_URL
+from config.auth import get_logged_in_user
+from config.decorators import permission_required
+from rich.console import Console
+from rich.table import Table
 from datetime import datetime
-import session_manager
+import config.session_manager as session_manager
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
 def manage_events_menu():
+    """
+    Display for events menu.
+    """
+    console = Console()
+
     while True:
-        table = Texttable()
-        table.header(["Events menu, please select an option"])
-        table.add_row(["1. Create a new event"])
-        table.add_row(["2. Show all the events"])
-        table.add_row(["3. Update an event"])
-        table.add_row(["4. Go back"])
-        print(table.draw())
+        table = Table(show_header=True, header_style="bold green")
+        table.add_column("Events menu, please select an option", justify="left", style="cyan")
+        
+        table.add_row("1. Create a new event")
+        table.add_row("2. Show all the events")
+        table.add_row("3. Update an event")
+        table.add_row("4. Go back")
+
+        console.print(table)
 
         choice = input("Enter your choice: ")
 
@@ -40,52 +49,87 @@ def manage_events_menu():
         elif choice == '4':
             break
         else:
-            print("Invalid choice")
+            console.print("\nInvalid choice, try again\n", style="bold red")
 
 
 @permission_required('create_events')
 def create_event_view():
-    user = get_logged_in_user(session_manager.get_current_token())
-    if not user:
-        print("Please login.")
-        return
+    """
+    Display a form to create a new event and save it to the database.
+
+    This function prompts the user to input the details for a new event, including the event name, 
+    start and end dates, location, number of attendees, notes, contract ID, customer ID, and employee ID. 
+    It calls the create_event function to save the new event to the database.
+
+    Permissions:
+        Requires 'create_events' permission.
+
+    Inputs:
+        name (str): The name of the event.
+        start_date (str): The start date of the event in YYYY-MM-DD format.
+        end_date (str): The end date of the event in YYYY-MM-DD format.
+        location (str): The location of the event.
+        attendees (int): The number of attendees for the event.
+        notes (str): Additional notes for the event.
+        contract_id (int): The ID of the related contract.
+        customer_id (int): The ID of the related customer.
+        employee_id (int): The ID of the employee creating the event.
+
+    Outputs:
+        str: Result message indicating the success or failure of the event creation.
+    """
+    console = Console()
+    user, _ = get_logged_in_user(session_manager.get_current_token())
     
     name = input("Enter the name of the event: ")
 
-    while True:
-        try:
-            start_date = input("Enter start date (YYYY-MM-DD): ")
-            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-            break
-        except ValueError:
-            print("Invalid date format. Please enter the date in YYYY-MM-DD format.")
-
-    while True:
-        try:
-            end_date = input("Enter end date (YYYY-MM-DD): ")
-            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-            break
-        except ValueError:
-            print("Invalid date format. Please enter the date in YYYY-MM-DD format.")
+    start_date = get_valid_date("Enter start date (YYYY-MM-DD): ", allow_blank=False)
+    end_date = get_valid_date("Enter end date (YYYY-MM-DD): ", allow_blank=False)
 
     location = input("Enter the location of the event: ")
-    attendees = int(input("Enter the number of attendees: "))
+    attendees = get_valid_int("Enter the number of attendees: ")
     notes = input("Enter notes: ")
-    get_contracts()
-    contract_id = input("Select the contract ID: ")
-    get_customers()
-    customer_id = input("Select the customer ID: ")
+    contract_id = get_valid_id(session, "Enter contract ID: ", get_contracts, Contract, allow_blank=False)
+    customer_id = get_valid_id(session, "Enter customer ID: ", get_customers, Customer, allow_blank=False)
     employee_id = user.id
 
     result = create_event(name, start_date, end_date, location, attendees, notes, contract_id, customer_id, employee_id)
-    print(result)
+    if result == "Event created successfully!":
+        console.print(result, style="bold green")
+    else:
+        console.print(result, style="bold red")
 
 @permission_required('update_events')
 def update_event_view():
-    user = get_logged_in_user(session_manager.get_current_token())
-    if not user:
-        print("Please login.")
-        return
+    """
+    Display a form to update an existing event and save the changes to the database.
+
+    This function lists the current events and prompts the user to select an event to update. 
+    It then prompts the user to input new values for the event details, such as name, start date, end date, 
+    location, number of attendees, notes, contract ID, customer ID, and employee ID. The function then calls 
+    update_event to save the changes to the database.
+
+    Permissions:
+        Requires 'update_events' permission.
+
+    Inputs:
+        event_id (int): The ID of the event to update.
+        name (str): The new name of the event (optional).
+        start_date (str): The new start date of the event in YYYY-MM-DD format (optional).
+        end_date (str): The new end date of the event in YYYY-MM-DD format (optional).
+        location (str): The new location of the event (optional).
+        attendees (int): The new number of attendees for the event (optional).
+        notes (str): The new notes for the event (optional).
+        contract_id (int): The new ID of the related contract (optional).
+        customer_id (int): The new ID of the related customer (optional).
+        employee_id (int): The new ID of the related employee (optional).
+
+    Outputs:
+        str: Result message indicating the success or failure of the event update.
+    """
+    console = Console()
+    token = session_manager.get_current_token()
+    user, _ = get_logged_in_user(token)
     
     while True:
         print("Choose the event to update:")
@@ -93,13 +137,13 @@ def update_event_view():
 
         event_id = (input("Enter the event ID to update:"))
         if not event_id.isdigit():
-            print("Please enter a valid numeric ID.")
+            console.print("Please enter a valid numeric ID.", style="bold red")
             continue
 
         event_id = int(event_id)
         event = session.query(Event).get(event_id)
         if not event:
-            print("Event ID not found. Please choose an existing ID from the list.")
+            console.print("Event ID not found. Please choose an existing ID from the list.", style="bold red")
             continue
 
         name = input("Enter the new name of the event (leave blank to keep current): ")
@@ -111,7 +155,7 @@ def update_event_view():
                     start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
                 break
             except ValueError:
-                print("Invalid date format. Please enter the date in YYYY-MM-DD format.")
+                console.print("Invalid date format. Please enter the date in YYYY-MM-DD format.", style="bold red")
 
         while True:
             try:
@@ -120,7 +164,7 @@ def update_event_view():
                     end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
                 break
             except ValueError:
-                print("Invalid date format. Please enter the date in YYYY-MM-DD format.")
+                console.print("Invalid date format. Please enter the date in YYYY-MM-DD format.", style="bold red")
 
         location = input("Enter new location (leave blank to keep current): ")
         attendees = input("Enter new number of attendees (leave blank to keep current): ")
@@ -133,12 +177,12 @@ def update_event_view():
                 contract_id = event.contract_id
                 break
             if not contract_id.isdigit():
-                print("Please enter a valid numeric ID.")
+                console.print("Please enter a valid numeric ID.", style="bold red")
                 continue
             contract_id = int(contract_id)
             contract = session.query(Contract).get(contract_id)
             if not contract:
-                print("Contract ID not found. Please choose an existing ID from the list.")
+                console.print("Contract ID not found. Please choose an existing ID from the list.", style="bold red")
                 continue
             break
         
@@ -149,12 +193,12 @@ def update_event_view():
                 customer_id = event.customer_id
                 break
             if not customer_id.isdigit():
-                print("Please enter a valid numeric ID.")
+                console.print("Please enter a valid numeric ID.", style="bold red")
                 continue
             customer_id = int(customer_id)
             customer = session.query(Customer).get(customer_id)
             if not customer:
-                print("Customer ID not found. Please choose an existing ID from the list.")
+                console.print("Customer ID not found. Please choose an existing ID from the list.", style="bold red")
                 continue
             break
         
@@ -165,12 +209,12 @@ def update_event_view():
                 employee_id = event.employee_id
                 break
             if not employee_id.isdigit():
-                print("Please enter a valid numeric ID.")
+                console.print("Please enter a valid numeric ID.", style="bold red")
                 continue
             employee_id = int(employee_id)
             employee = session.query(Employee).get(employee_id)
             if not employee:
-                print("Employee ID not found. Please choose an existing ID from the list.")
+                console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
                 continue
             break
 
@@ -195,5 +239,8 @@ def update_event_view():
             customer_id,
             employee_id
         )
-        print(result)
+        if result == "Event updated successfully!":
+            console.print(result, style="bold green")
+        else:
+            console.print(result, style="bold red")
         break

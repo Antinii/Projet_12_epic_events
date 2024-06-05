@@ -1,8 +1,9 @@
 from models.events import Event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from settings import DATABASE_URL
-from texttable import Texttable
+from config.settings import DATABASE_URL
+from rich.console import Console
+from rich.table import Table
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
@@ -31,20 +32,30 @@ def get_events():
     """
     Show all events in a nice table format.
     """
+    console = Console()
     events = session.query(Event).all()
 
     if not events:
         print("No events found.")
         return
     
-    table = Texttable()
-    table.header(["ID", "Name", "Start Date", "End Date", "Location", "Attendees",
-                  "Notes", "Contract ID", "Customer name", "Employee contact"])
+    table = Table(title="List of all events", show_header=True, header_style="magenta", show_lines=True)
+    table.add_column("ID", justify="center")
+    table.add_column("Name", justify="center")
+    table.add_column("Start Date", justify="center")
+    table.add_column("End Date", justify="center")
+    table.add_column("Location", justify="center")
+    table.add_column("Attendees", justify="center")
+    table.add_column("Notes", justify="center")
+    table.add_column("Contract ID", justify="center")
+    table.add_column("Customer name", justify="center")
+    table.add_column("Employee contact", justify="center")
+
     for event in events:
-        table.add_row([event.id, event.name, event.start_date, event.end_date, event.location,
-                       event.attendees, event.notes, event.contract_id, event.customer.fullname, event.employee.name])
+        table.add_row(str(event.id), event.name, str(event.start_date), str(event.end_date), event.location,
+                       str(event.attendees), event.notes, str(event.contract_id), event.customer.fullname, event.employee.name)
     
-    print(table.draw())
+    console.print(table)
 
 def update_event(event_id, name=None, start_date=None, end_date=None, location=None,
                  attendees=None, notes=None, contract_id=None, customer_id=None, employee_id=None):

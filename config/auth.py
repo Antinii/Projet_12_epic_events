@@ -1,7 +1,8 @@
-from settings import SECRET_KEY, DATABASE_URL
+from config.settings import SECRET_KEY, DATABASE_URL
 from models.employees import Employee
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+import config.session_manager as session_manager
 import jwt
 import datetime
 
@@ -21,16 +22,20 @@ def generate_token(employee_id):
 def decode_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return payload['sub']
+        return payload['sub'], False
     except jwt.ExpiredSignatureError:
-        print("Token has expired")
-        return None
+        return None, True
     except jwt.InvalidTokenError:
         print("Invalid token")
         return None
 
 def get_logged_in_user(token):
-    employee_id = decode_token(token)
+    employee_id, is_expired = decode_token(token)
     if employee_id:
-        return session.query(Employee).filter_by(id=employee_id).first()
-    return None
+        return session.query(Employee).filter_by(id=employee_id).first(), is_expired
+    return None, is_expired
+
+def logout():
+    session_manager.clear_current_token()
+    from views.main_view import main
+    main()

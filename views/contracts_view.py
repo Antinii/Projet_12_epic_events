@@ -1,16 +1,17 @@
-from texttable import Texttable
 from controllers.contracts_controller import get_contracts, create_contract, update_contract
 from controllers.customers_controller import get_customers
 from controllers.employees_controller import get_employees
 from models.contracts import Contract
 from models.customers import Customer
 from models.employees import Employee
-from settings import DATABASE_URL
+from config.settings import DATABASE_URL
 from sqlalchemy.orm import sessionmaker
+from rich.console import Console
+from rich.table import Table
 from sqlalchemy import create_engine
-from auth import get_logged_in_user
-from decorators import permission_required
-import session_manager
+from config.auth import get_logged_in_user
+from config.decorators import permission_required
+import config.session_manager as session_manager
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
@@ -21,14 +22,18 @@ def manage_contracts_menu():
     Main menu for contracts.
     Possibility to choose to create, read, update all the contracts.
     """
+    console = Console()
+
     while True:
-        table = Texttable()
-        table.header(["Contracts menu, please select an option"])
-        table.add_row(["1. Create a new contract"])
-        table.add_row(["2. Show all the contracts"])
-        table.add_row(["3. Update a contract"])
-        table.add_row(["4. Go back"])
-        print(table.draw())
+        table = Table(show_header=True, header_style="bold green")
+        table.add_column("Contracts menu, please select an option: ", justify="left", style="cyan")
+        
+        table.add_row("1. Create a new contract")
+        table.add_row("2. Show all the contracts")
+        table.add_row("3. Update a contract")
+        table.add_row("4. Go back")
+
+        console.print(table)
 
         choice = input("Enter your choice: ")
 
@@ -41,7 +46,7 @@ def manage_contracts_menu():
         elif choice == '4':
             break
         else:
-            print("Invalid choice")
+            console.print("\nInvalid choice, try again\n", style="bold red")
 
 @permission_required('create_contracts')
 def create_contract_view():
@@ -64,9 +69,10 @@ def create_contract_view():
     Outputs:
         str: Result message indicating the success or failure of the contract creation.
     """
+    console = Console()
     user = get_logged_in_user(session_manager.get_current_token())
     if not user:
-        print("Please login.")
+        console.print("Please login.", style="bold red")
         return
     
     total_price = float(input("Enter total price of the contract: "))
@@ -100,9 +106,10 @@ def update_contract_view():
     Outputs:
         str: Result message indicating the success or failure of the contract update.
     """
+    console = Console()
     user = get_logged_in_user(session_manager.get_current_token())
     if not user:
-        print("Please login.")
+        console.print("Please login.", style="bold red")
         return
     
     while True:
@@ -111,13 +118,13 @@ def update_contract_view():
 
         contract_id = (input("Enter the contract ID to update: "))
         if not contract_id.isdigit():
-            print("Please enter a valid numeric ID.")
+            console.print("Please enter a valid numeric ID.", style="bold red")
             continue
 
         contract_id = int(contract_id)
         contract = session.query(Contract).get(contract_id)
         if not contract:
-            print("Contract ID not found. Please choose an existing ID from the list.")
+            console.print("Contract ID not found. Please choose an existing ID from the list.", style="bold red")
             continue
 
         total_price = input("Enter new total price (leave blank to keep current): ")
@@ -131,12 +138,12 @@ def update_contract_view():
                 customer_id = contract.customer_id
                 break
             if not customer_id.isdigit():
-                print("Please enter a valid numeric ID.")
+                console.print("Please enter a valid numeric ID.", style="bold red")
                 continue
             customer_id = int(customer_id)
             customer = session.query(Customer).get(customer_id)
             if not customer:
-                print("Customer ID not found. Please choose an existing ID from the list.")
+                console.print("Customer ID not found. Please choose an existing ID from the list.", style="bold red")
                 continue
             break
 
@@ -147,12 +154,12 @@ def update_contract_view():
                 employee_id = contract.employee_id
                 break
             if not employee_id.isdigit():
-                print("Please enter a valid numeric ID.")
+                console.print("Please enter a valid numeric ID.", style="bold red")
                 continue
             employee_id = int(employee_id)
             employee = session.query(Employee).get(employee_id)
             if not employee:
-                print("Employee ID not found. Please choose an existing ID from the list.")
+                console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
                 continue
             break
 
@@ -163,5 +170,8 @@ def update_contract_view():
         employee_id = int(employee_id) if employee_id else None
 
         result = update_contract(contract_id, total_price, pending_amount, is_signed, customer_id, employee_id)
-        print(result)
+        if result == "Contract updated successfully!":
+            console.print(result, style="bold green")
+        else:
+            console.print(result, style="bold red")
         break

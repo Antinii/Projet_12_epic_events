@@ -1,9 +1,10 @@
-from settings import DATABASE_URL
+from config.settings import DATABASE_URL
 from models.employees import Employee
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from auth import generate_token
-from texttable import Texttable
+from config.auth import generate_token
+from rich.console import Console
+from rich.table import Table
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
@@ -35,18 +36,23 @@ def get_employees():
     """
     Show all employees in a nice table format.
     """
+    console = Console()
     employees = session.query(Employee).all()
 
     if not employees:
         print("No employees found.")
         return
 
-    table = Texttable()
-    table.header(["ID", "Name", "Department"])
+    table = Table(title="List of all Employees", show_header=True, header_style="magenta", show_lines=True)
+
+    table.add_column("ID", justify="center")
+    table.add_column("Name", justify="left")
+    table.add_column("Department", justify="left")
+
     for employee in employees:
-        table.add_row([employee.id, employee.name, employee.department.name])
+        table.add_row(str(employee.id), employee.name, employee.department.name)
     
-    print(table.draw())
+    console.print(table)
 
 def update_employee(employee_id, name=None, password=None, department_id=None):
     """

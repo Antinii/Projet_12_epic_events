@@ -1,4 +1,4 @@
-from settings import DATABASE_URL
+from config.settings import DATABASE_URL
 from models.departments import Department
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine

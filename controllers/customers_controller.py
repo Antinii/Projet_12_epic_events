@@ -1,8 +1,9 @@
-from settings import DATABASE_URL
+from config.settings import DATABASE_URL
 from models.customers import Customer
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from texttable import Texttable
+from rich.console import Console
+from rich.table import Table
 from datetime import datetime
 
 engine = create_engine(DATABASE_URL)
@@ -13,19 +14,29 @@ def get_customers():
     """
     Show all customers in a nice table format.
     """
+    console = Console()
     customers = session.query(Customer).all()
 
     if not customers:
         print("No customers found.")
         return
 
-    table = Texttable()
-    table.header(["ID", "Full Name", "Email", "Phone", "Company Name", "Created Date", "Updated Date", "Contact"])
+    table = Table(title="list of all the customers", show_header=True, header_style="magenta", show_lines=True)
+
+    table.add_column("ID", justify="center")
+    table.add_column("Full Name", justify="center")
+    table.add_column("Email", justify="center")
+    table.add_column("Phone", justify="center")
+    table.add_column("Company Name", justify="center")
+    table.add_column("Created Date", justify="center")
+    table.add_column("Updated Date", justify="center")
+    table.add_column("Contact", justify="center")
+
     for customer in customers:
-        table.add_row([customer.id, customer.fullname, customer.email, customer.phone, customer.company_name,
-                       customer.created_date, customer.updated_date, customer.contact.name])
+        table.add_row(str(customer.id), customer.fullname, customer.email, customer.phone, customer.company_name,
+                       str(customer.created_date), str(customer.updated_date), customer.contact.name)
     
-    print(table.draw())
+    console.print(table)
 
 def create_customer(fullname, email, phone, company_name, contact_id):
     if session.query(Customer).filter_by(email=email).first():

@@ -1,26 +1,34 @@
-from texttable import Texttable
 from controllers.customers_controller import get_customers, create_customer, update_customer
 from models.customers import Customer
-from settings import DATABASE_URL
+from config.settings import DATABASE_URL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from auth import get_logged_in_user
-from decorators import permission_required
-import session_manager
+from config.auth import get_logged_in_user
+from config.decorators import permission_required
+import config.session_manager as session_manager
+from rich.console import Console
+from rich.table import Table
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
 def manage_customers_menu():
+    """
+    Menu for customers
+    """
+    console = Console()
+
     while True:
-        table = Texttable()
-        table.header(["Customers menu, please select an option"])
-        table.add_row(["1. Create a new customer"])
-        table.add_row(["2. Show all the customers"])
-        table.add_row(["3. Update a customer"])
-        table.add_row(["4. Go back"])
-        print(table.draw())
+        table = Table(show_header=True, header_style="bold green")
+        table.add_column("Customers menu, please select an option: ", justify="left", style="cyan")
+        
+        table.add_row("1. Create a new customer")
+        table.add_row("2. Show all the customers")
+        table.add_row("3. Update a customer")
+        table.add_row("4. Go back")
+        
+        console.print(table)
 
         choice = input("Enter your choice: ")
 
@@ -33,7 +41,7 @@ def manage_customers_menu():
         elif choice == '4':
             break
         else:
-            print("Invalid choice")
+            console.print("\nInvalid choice, try again\n", style="bold red")
 
 
 @permission_required('create_customers')
@@ -41,9 +49,10 @@ def create_customer_view():
     """
     Create a new customer in the database.
     """
+    console = Console()
     user = get_logged_in_user(session_manager.get_current_token())
     if not user:
-        print("Please login.")
+        console.print("Please login.", style="bold red")
         return
 
     fullname = input("Enter the full name of the customer: ")
@@ -77,19 +86,20 @@ def update_customer_view():
     Outputs:
         str: Result message indicating the success or failure of the customer update.
     """
+    console = Console()
     while True:
         print("Choose the customer to update:")
         get_customers()
 
         customer_id = input("Enter the customer ID to update: ")
         if not customer_id.isdigit():
-            print("Please enter a valid numeric ID.")
+            console.print("Please enter a valid numeric ID.", style="bold red")
             continue
 
         customer_id = int(customer_id)
         customer = session.query(Customer).get(customer_id)
         if not customer:
-            print("Customer ID not found. Please choose an existing ID from the list.")
+            console.print("Customer ID not found. Please choose an existing ID from the list.", style="bold red")
             continue
 
         fullname = input("Enter new full name (leave blank to keep current): ")

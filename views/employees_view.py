@@ -1,19 +1,19 @@
 import getpass
 from controllers.employees_controller import create_employee, get_employees
 from controllers.departments_controller import get_departments
-from controllers.departments_controller import get_departments
 from controllers.employees_controller import login_employee, create_employee, update_employee, delete_employee
 from models.employees import Employee
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from contracts_view import manage_contracts_menu
-from customers_view import manage_customers_menu
-from events_view import manage_events_menu
-from auth import get_logged_in_user
-from settings import DATABASE_URL
-from texttable import Texttable
-from decorators import permission_required
-import session_manager
+from views.contracts_view import manage_contracts_menu
+from views.customers_view import manage_customers_menu
+from views.events_view import manage_events_menu
+from config.auth import get_logged_in_user
+from config.settings import DATABASE_URL
+from rich.console import Console
+from rich.table import Table
+from config.decorators import permission_required
+import config.session_manager as session_manager
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
@@ -23,15 +23,19 @@ def manage_employees_menu():
     """
     Display for employees menu.
     """
+    console = Console()
+
     while True:
-        table = Texttable()
-        table.header(["Employees menu, please select an option"])
-        table.add_row(["1. Create a new employee"])
-        table.add_row(["2. Show all the employees"])
-        table.add_row(["3. Update an employee"])
-        table.add_row(["4. Delete an employee"])
-        table.add_row(["5. Go back"])
-        print(table.draw())
+        table = Table(show_header=True, header_style="bold green")
+        table.add_column("Employees menu, please select an option: ", justify="left", style="cyan", no_wrap=True)
+        
+        table.add_row("1. Create a new employee")
+        table.add_row("2. Show all the employees")
+        table.add_row("3. Update an employee")
+        table.add_row("4. Delete an employee")
+        table.add_row("5. Go back")
+
+        console.print(table)
 
         choice = input("Enter your choice: ")
 
@@ -46,21 +50,26 @@ def manage_employees_menu():
         elif choice == '5':
             break
         else:
-            print("Invalid choice")
+            console.print("\nInvalid choice, try again\n", style="bold red")
 
 def logged_in_menu(name):
     """
     Display the main menu of the application.
     """
+    console = Console()
+
     while True:
-        table = Texttable()
-        table.header([f"Welcome {name}, please choose an option:"])
-        table.add_row(["1. Manage Employees"])
-        table.add_row(["2. Manage Customers"])
-        table.add_row(["3. Manage Contracts"])
-        table.add_row(["4. Manage Events"])
-        table.add_row(["5. Logout"])
-        print(table.draw())
+        table = Table(show_header=True, header_style="bold green")
+
+        table.add_column(f"Welcome {name}, please choose an option:", justify="left", style="cyan", no_wrap=True)
+        
+        table.add_row("1. Manage Employees")
+        table.add_row("2. Manage Customers")
+        table.add_row("3. Manage Contracts")
+        table.add_row("4. Manage Events")
+        table.add_row("5. Logout")
+
+        console.print(table)
 
         choice = input("Enter your choice: ")
 
@@ -76,7 +85,7 @@ def logged_in_menu(name):
             print(f"Goodbye, {name}!")
             break
         else:
-            print("Invalid choice")
+            console.print("\nInvalid choice, try again\n", style="bold red")
 
 def display_departments(departments):
     """
@@ -85,13 +94,36 @@ def display_departments(departments):
     Args:
         departments (list): List of departments to display.
     """
-    table = Texttable()
-    table.header(["ID", "Department Name"])
+    console = Console()
+
+    table = Table(title="List of all Departments", show_header=True, header_style="magenta", show_lines=True)
+
+    table.add_column("ID", justify="center")
+    table.add_column("Department Name", justify="left")
+
     for dept in departments:
-        table.add_row([dept.id, dept.name])
-    print(table.draw())
+        table.add_row(str(dept.id), dept.name)
+
+    console.print(table)
 
 def create_user_view():
+    """
+    Display a form to create a new user and save it to the database.
+
+    This function prompts the user to input their name, password, and department. 
+    It ensures the password is confirmed correctly, lists the available departments, 
+    and calls create_employee to save the new user's details to the database.
+
+    Inputs:
+        name (str): The name of the user.
+        password (str): The password of the user.
+        password_confirm (str): The confirmation of the password.
+        department_id (int): The ID of the department the user belongs to.
+
+    Outputs:
+        str: Result message indicating the success or failure of the user creation.
+    """
+    console = Console()
     name = input("Enter your name: ")
 
     while True:
@@ -100,7 +132,7 @@ def create_user_view():
         if password == password_confirm:
             break
         else:
-            print("Passwords do not match. Please try again.")
+            console.print("Passwords do not match. Please try again.", style="bold red")
 
     departments = get_departments()
     display_departments(departments)
@@ -109,6 +141,18 @@ def create_user_view():
     print(result)
 
 def login_view():
+    """
+    Display the login form and handle user authentication.
+
+    This function prompts the user to input their name and password. It calls the 
+    login_employee function to verify the credentials. If the login is successful, 
+    it sets the current session token and displays the main menu for the logged-in user. 
+    If the login fails, it displays an error message and prompts the user to try again.
+
+    Inputs:
+        name (str): The name of the user.
+        password (str): The password of the user.
+    """
     while True:
         name = input("Enter your name: ")
         password = getpass.getpass("Enter your password: ")
@@ -141,9 +185,10 @@ def create_new_employee():
     Outputs:
         str: Result message indicating the success or failure of the employee creation.
     """
+    console = Console()
     user = get_logged_in_user(session_manager.get_current_token())
     if not user:
-        print("Please login.")
+        console.print("Please login.", style="bold red")
         return
     
     name = input("Enter the employee name: ")
@@ -154,7 +199,7 @@ def create_new_employee():
         if password == password_confirm:
             break
         else:
-            print("Passwords do not match. Please try again.")
+            console.print("Passwords do not match. Please try again.", style="bold red")
 
     departments = get_departments()
     display_departments(departments)
@@ -183,18 +228,19 @@ def update_employee_view():
     Outputs:
         str: Result message indicating the success or failure of the employee update.
     """
+    console = Console()
     while True:
         print("Choose the employee to update:")
         get_employees()
 
         employee_id = (input("Enter the employee ID to update: "))
         if not employee_id.isdigit():
-            print("Please enter a valid numeric ID.")
+            console.print("Please enter a valid numeric ID.", style="bold red")
             continue
         employee_id = int(employee_id)
         employee = session.query(Employee).get(employee_id)
         if not employee:
-            print("Employee ID not found. Please choose an existing ID from the list.")
+            console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
             continue
 
         name = input("Enter new name (leave blank to keep current): ")
@@ -208,7 +254,7 @@ def update_employee_view():
                     password = new_password
                     break
                 else:
-                    print("Passwords do not match. Please try again.")
+                    console.print("Passwords do not match. Please try again.", style="bold red")
             else:
                 break
 
@@ -240,19 +286,21 @@ def delete_employee_view():
     Outputs:
         str: Result message indicating the success or failure of the employee deletion.
     """
+    console = Console()
+
     while True:
         print("List of all employees:")
         get_employees()
 
         employee_id = (input("Enter the employee ID to update: "))
         if not employee_id.isdigit():
-            print("Please enter a valid numeric ID.")
+            console.print("Please enter a valid numeric ID.", style="bold red")
             continue
 
         employee_id = int(employee_id)
         employee = session.query(Employee).get(employee_id)
         if not employee:
-            print("Employee ID not found. Please choose an existing ID from the list.")
+            console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
             continue
 
         confirmation = input(f"Are you sure you want to delete the employee with ID {employee_id}? (yes/no): ")
@@ -260,5 +308,5 @@ def delete_employee_view():
             result = delete_employee(employee_id)
             print(result)
         else:
-            print("Deletion cancelled.")
+            console.print("Deletion cancelled.", style="bold red")
         break
