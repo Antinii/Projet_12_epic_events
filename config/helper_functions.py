@@ -23,6 +23,17 @@ def get_valid_int(prompt, allow_blank=False):
             return int(input_value)
         console.print("Please enter a valid numeric value.", style="bold red")
 
+def get_valid_float(prompt, allow_blank=False):
+    console = Console()
+    while True:
+        input_value = input(prompt)
+        if allow_blank and input_value == "":
+            return None
+        try:
+            return float(input_value)
+        except ValueError:
+            console.print("Please enter a valid numeric value.", style="bold red")
+
 def get_valid_id(session, prompt, get_function, entity_name, allow_blank=False, current_id=None):
     console = Console()
     while True:

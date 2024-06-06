@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from config.auth import get_logged_in_user
 from config.decorators import permission_required
+from config.helper_functions import get_valid_int
 import config.session_manager as session_manager
 from rich.console import Console
 from rich.table import Table
@@ -15,7 +16,7 @@ session = Session()
 
 def manage_customers_menu():
     """
-    Menu for customers
+    Display the menu for customers.
     """
     console = Console()
 
@@ -48,9 +49,25 @@ def manage_customers_menu():
 def create_customer_view():
     """
     Create a new customer in the database.
+
+    This function prompts the user to input the necessary information to create a new customer, 
+    including fullname, email, phone number and company name. It then calls the create_customer function 
+    to save the new customer to the database.
+
+    Permissions:
+        Requires 'create_customers' permission.
+
+    Inputs:
+        fullname (str): The full name of the customer.
+        email (str): The email of the customer.
+        phone (str): The phone number of the customer.
+        company_name (str): The company name the customer belongs to.
+
+    Outputs:
+        str: Result message indicating the success or failure of the customer creation.
     """
     console = Console()
-    user = get_logged_in_user(session_manager.get_current_token())
+    user, _ = get_logged_in_user(session_manager.get_current_token())
     if not user:
         console.print("Please login.", style="bold red")
         return
@@ -62,7 +79,10 @@ def create_customer_view():
     contact_id = user.id
 
     result = create_customer(fullname, email, phone, company_name, contact_id)
-    print(result)
+    if result == "Customer created successfully!":
+        console.print(result, style="bold green")
+    else:
+        console.print(result, style="bold red")
 
 @permission_required('update_customers')
 def update_customer_view():
@@ -87,16 +107,16 @@ def update_customer_view():
         str: Result message indicating the success or failure of the customer update.
     """
     console = Console()
+    user, _ = get_logged_in_user(session_manager.get_current_token())
+    if not user:
+        console.print("Please login.", style="bold red")
+        return
+    
     while True:
         print("Choose the customer to update:")
         get_customers()
 
-        customer_id = input("Enter the customer ID to update: ")
-        if not customer_id.isdigit():
-            console.print("Please enter a valid numeric ID.", style="bold red")
-            continue
-
-        customer_id = int(customer_id)
+        customer_id = get_valid_int("Enter the customer ID to update: ")
         customer = session.query(Customer).get(customer_id)
         if not customer:
             console.print("Customer ID not found. Please choose an existing ID from the list.", style="bold red")
@@ -112,5 +132,8 @@ def update_customer_view():
                                 email if email else None, 
                                 phone if phone else None, 
                                 company_name if company_name else None)
-        print(result)
+        if result == "Customer updated successfully!":
+            console.print(result, style="bold green")
+        else:
+            console.print(result, style="bold red")
         break

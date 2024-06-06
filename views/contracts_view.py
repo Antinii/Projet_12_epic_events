@@ -5,6 +5,7 @@ from models.contracts import Contract
 from models.customers import Customer
 from models.employees import Employee
 from config.settings import DATABASE_URL
+from config.helper_functions import get_valid_int, get_valid_id, get_valid_float
 from sqlalchemy.orm import sessionmaker
 from rich.console import Console
 from rich.table import Table
@@ -70,20 +71,21 @@ def create_contract_view():
         str: Result message indicating the success or failure of the contract creation.
     """
     console = Console()
-    user = get_logged_in_user(session_manager.get_current_token())
+    user, _ = get_logged_in_user(session_manager.get_current_token())
     if not user:
         console.print("Please login.", style="bold red")
         return
     
-    total_price = float(input("Enter total price of the contract: "))
-    pending_amount = float(input("Enter pending amount: "))
-    get_customers()
-    customer_id = input("Enter the customer ID associated to that contract: ")
-    get_employees()
-    employee_id = input("Enter the employee ID associated to that contract: ")
+    total_price = get_valid_float("Enter total price of the contract: ")
+    pending_amount = get_valid_float("Enter pending amount: ")
+    customer_id = get_valid_id(session, "Enter the customer ID associated to that contract: ", get_customers, Customer, allow_blank=False)
+    employee_id = get_valid_id(session, "Enter the employee ID associated to that contract: ", get_employees, Employee, allow_blank=False)
 
     result = create_contract(total_price, pending_amount, customer_id, employee_id)
-    print(result)
+    if result == "Contract created successfully!":
+        console.print(result, style="bold green")
+    else:
+        console.print(result, style="bold red")
 
 @permission_required('update_contracts')
 def update_contract_view():
@@ -107,7 +109,7 @@ def update_contract_view():
         str: Result message indicating the success or failure of the contract update.
     """
     console = Console()
-    user = get_logged_in_user(session_manager.get_current_token())
+    user, _ = get_logged_in_user(session_manager.get_current_token())
     if not user:
         console.print("Please login.", style="bold red")
         return
@@ -116,52 +118,20 @@ def update_contract_view():
         print("Choose the contract to update:")
         get_contracts()
 
-        contract_id = (input("Enter the contract ID to update: "))
-        if not contract_id.isdigit():
-            console.print("Please enter a valid numeric ID.", style="bold red")
-            continue
-
-        contract_id = int(contract_id)
+        contract_id = get_valid_int("Enter the contract ID to update: ")
         contract = session.query(Contract).get(contract_id)
         if not contract:
             console.print("Contract ID not found. Please choose an existing ID from the list.", style="bold red")
             continue
 
-        total_price = input("Enter new total price (leave blank to keep current): ")
-        pending_amount = input("Enter new pending amount (leave blank to keep current): ")
+        total_price = get_valid_float("Enter new total price (leave blank to keep current): ", allow_blank=True)
+        pending_amount = get_valid_float("Enter new pending amount (leave blank to keep current): ", allow_blank=True)
         is_signed = input("Is the contract signed ? (yes/no, leave blank to keep current): ")
 
-        while True:
-            get_customers()
-            customer_id = input("Enter new customer ID (leave blank to keep current): ")
-            if customer_id == "":
-                customer_id = contract.customer_id
-                break
-            if not customer_id.isdigit():
-                console.print("Please enter a valid numeric ID.", style="bold red")
-                continue
-            customer_id = int(customer_id)
-            customer = session.query(Customer).get(customer_id)
-            if not customer:
-                console.print("Customer ID not found. Please choose an existing ID from the list.", style="bold red")
-                continue
-            break
-
-        while True:       
-            get_employees()
-            employee_id = input("Enter new employee ID (leave blank to keep current): ")
-            if employee_id == "":
-                employee_id = contract.employee_id
-                break
-            if not employee_id.isdigit():
-                console.print("Please enter a valid numeric ID.", style="bold red")
-                continue
-            employee_id = int(employee_id)
-            employee = session.query(Employee).get(employee_id)
-            if not employee:
-                console.print("Employee ID not found. Please choose an existing ID from the list.", style="bold red")
-                continue
-            break
+        customer_id = get_valid_id(session, "Enter new customer ID (leave blank to keep current): ",
+                                    get_customers, Customer, allow_blank=True, current_id=contract.customer_id)
+        employee_id = get_valid_id(session, "Enter new employee ID (leave blank to keep current): ",
+                                    get_employees, Employee, allow_blank=True, current_id=contract.employee_id)
 
         total_price = float(total_price) if total_price else None
         pending_amount = float(pending_amount) if pending_amount else None
