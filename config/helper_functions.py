@@ -54,9 +54,21 @@ def get_valid_id(session, prompt, get_function, entity_name, allow_blank=False, 
 def get_valid_password():
     console = Console()
     while True:
-        password = getpass.getpass("Enter the password: ")
+        password = getpass.getpass("Enter the password (minimum 6 characters): ")
+        if len(password) < 6:
+            console.print("Password must be at least 6 characters long. Please try again.", style="bold red")
+            continue
         password_confirm = getpass.getpass("Confirm the password: ")
         if password == password_confirm:
             return password
         else:
             console.print("Passwords do not match. Please try again.", style="bold red")
+
+def get_valid_name(min_length=3):
+    console = Console()
+    while True:
+        name = input(f"Enter your name (minimum {min_length} characters): ")
+        if len(name) >= min_length:
+            return name
+        else:
+            console.print(f"Name must be at least {min_length} characters long. Please try again.", style="bold red")

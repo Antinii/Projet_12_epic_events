@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from rich.console import Console
 from rich.table import Table
 from datetime import datetime
+from sentry_sdk import capture_message, capture_exception
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
@@ -58,18 +59,25 @@ def update_contract(contract_id, total_price=None, pending_amount=None,
     """
     Update an existing contract in the database.
     """
-    contract = session.query(Contract).get(contract_id)
-    if not contract:
-        return "Contract not found."
-    if total_price is not None:
-        contract.total_price = total_price
-    if pending_amount is not None:
-        contract.pending_amount = pending_amount
-    if is_signed is not None:
-        contract.is_signed = is_signed
-    if customer_id is not None:
-        contract.customer_id = customer_id
-    if employee_id is not None:
-        contract.employee_id = employee_id
-    session.commit()
-    return "Contract updated successfully!"
+    try:
+        contract = session.query(Contract).get(contract_id)
+        if not contract:
+            return "Contract not found."
+        if total_price is not None:
+            contract.total_price = total_price
+        if pending_amount is not None:
+            contract.pending_amount = pending_amount
+        if is_signed is not None:
+            contract.is_signed = is_signed
+            if is_signed:
+                capture_message(f"Contract {contract_id} is signed !", level="info")
+        if customer_id is not None:
+            contract.customer_id = customer_id
+        if employee_id is not None:
+            contract.employee_id = employee_id
+        session.commit()
+        return "Contract updated successfully!"
+    except Exception as e:
+        session.rollback()
+        capture_exception(e)
+        return "Error updating contract."

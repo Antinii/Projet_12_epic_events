@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from config.auth import generate_token
 from rich.console import Console
 from rich.table import Table
+from sentry_sdk import capture_message, capture_exception
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
@@ -14,13 +15,19 @@ def create_employee(name, password, department_id):
     """
     Create an employee in the database.
     """
-    if session.query(Employee).filter_by(name=name).first():
-        return "This employee already exists, please choose another one."
-    new_employee = Employee(name=name, department_id=department_id)
-    new_employee.set_password(password)
-    session.add(new_employee)
-    session.commit()
-    return "User created successfully !"
+    try:
+        if session.query(Employee).filter_by(name=name).first():
+            return "This employee already exists, please choose another one."
+        new_employee = Employee(name=name, department_id=department_id)
+        new_employee.set_password(password)
+        session.add(new_employee)
+        session.commit()
+        capture_message(f"Employee created: {name}", level="info")
+        return "User created successfully!"
+    except Exception as e:
+        session.rollback()
+        capture_exception(e)
+        return "Error creating employee."
 
 def login_employee(name, password):
     employee = session.query(Employee).filter_by(name=name).first()
@@ -58,17 +65,23 @@ def update_employee(employee_id, name=None, password=None, department_id=None):
     """
     Update an existing employee in the database.
     """
-    employee = session.query(Employee).get(employee_id)
-    if not employee:
-        return "Employee not found."
-    if name:
-        employee.name = name
-    if password:
-        employee.set_password(password)
-    if department_id:
-        employee.department_id = department_id
-    session.commit()
-    return "Employee updated successfully!"
+    try:
+        employee = session.query(Employee).get(employee_id)
+        if not employee:
+            return "Employee not found."
+        if name:
+            employee.name = name
+        if password:
+            employee.set_password(password)
+        if department_id:
+            employee.department_id = department_id
+        session.commit()
+        capture_message(f"Employee updated: {name}", level="info")
+        return "Employee updated successfully!"
+    except Exception as e:
+        session.rollback()
+        capture_exception(e)
+        return "Error updating employee."
 
 def delete_employee(employee_id):
     """

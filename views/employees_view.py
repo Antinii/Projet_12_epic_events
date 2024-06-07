@@ -11,7 +11,7 @@ from views.customers_view import manage_customers_menu
 from views.events_view import manage_events_menu
 from config.auth import get_logged_in_user
 from config.settings import DATABASE_URL
-from config.helper_functions import get_valid_password, get_valid_int, get_valid_id
+from config.helper_functions import get_valid_password, get_valid_int, get_valid_id, get_valid_name
 from rich.console import Console
 from rich.table import Table
 from config.decorators import permission_required
@@ -107,11 +107,11 @@ def create_user_view():
         str: Result message indicating the success or failure of the user creation.
     """
     console = Console()
-    name = input("Enter your name: ")
+    name = get_valid_name()
     password = get_valid_password()
     department_id = get_valid_id(session, "Please select your department ID: ", get_departments, Department, allow_blank=False)
     result = create_employee(name, password, department_id)
-    if result == "User created successfully !":
+    if result == "User created successfully!":
         console.print(result, style="bold green")
     else:
         console.print(result, style="bold red")
@@ -167,7 +167,7 @@ def create_new_employee():
         console.print("Please login.", style="bold red")
         return
     
-    name = input("Enter the employee name: ")
+    name = get_valid_name()
     password = get_valid_password()
     department_id = get_valid_id(session, "Please select the employee department ID: ", get_departments, Department, allow_blank=False)
     
@@ -264,7 +264,7 @@ def delete_employee_view():
         print("List of all employees:")
         get_employees()
 
-        employee_id = (input("Enter the employee ID to update: "))
+        employee_id = (input("Enter the employee ID to delete: "))
         if not employee_id.isdigit():
             console.print("Please enter a valid numeric ID.", style="bold red")
             continue
