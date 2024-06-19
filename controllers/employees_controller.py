@@ -14,8 +14,13 @@ session = Session()
 def create_employee(name, password, department_id):
     """
     Create an employee in the database.
+    Create a log in sentry when an employee is created successfully.
     """
     try:
+        name = name.strip()
+        password = password.strip()
+        if not name or not password:
+            return "Name and password cannot be empty."
         if session.query(Employee).filter_by(name=name).first():
             return "This employee already exists, please choose another one."
         new_employee = Employee(name=name, department_id=department_id)
@@ -30,6 +35,11 @@ def create_employee(name, password, department_id):
         return "Error creating employee."
 
 def login_employee(name, password):
+    """
+    
+    """
+    name = name.strip()
+    password = password.strip()
     employee = session.query(Employee).filter_by(name=name).first()
     if not employee:
         return {"message": "\n Username does not exist, please try again. \n"}
@@ -64,15 +74,16 @@ def get_employees():
 def update_employee(employee_id, name=None, password=None, department_id=None):
     """
     Update an existing employee in the database.
+    Create a log in sentry when an employee is updated successfully.
     """
     try:
         employee = session.query(Employee).get(employee_id)
         if not employee:
             return "Employee not found."
         if name:
-            employee.name = name
+            employee.name = name.strip()
         if password:
-            employee.set_password(password)
+            employee.set_password(password.strip())
         if department_id:
             employee.department_id = department_id
         session.commit()
@@ -85,7 +96,7 @@ def update_employee(employee_id, name=None, password=None, department_id=None):
 
 def delete_employee(employee_id):
     """
-    Delete an employee in the database
+    Delete an employee in the database.
     """
     employee = session.query(Employee).get(employee_id)
     if not employee:

@@ -39,6 +39,9 @@ def get_customers():
     console.print(table)
 
 def create_customer(fullname, email, phone, company_name, contact_id):
+    """
+    Create a customer and write it in the database.
+    """
     if session.query(Customer).filter_by(email=email).first():
         return "This customer already exists, please choose another email."
     
@@ -56,6 +59,9 @@ def create_customer(fullname, email, phone, company_name, contact_id):
     return "Customer created successfully!"
 
 def update_customer(customer_id, fullname=None, email=None, phone=None, company_name=None):
+    """
+    Update a customer already existing in the database.
+    """
     customer = session.query(Customer).get(customer_id)
     if not customer:
         return "Customer not found."

@@ -58,6 +58,7 @@ def update_contract(contract_id, total_price=None, pending_amount=None,
                     is_signed=None, customer_id=None, employee_id=None):
     """
     Update an existing contract in the database.
+    Create a log in sentry when a contract is getting True to is_signed.
     """
     try:
         contract = session.query(Contract).get(contract_id)

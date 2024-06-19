@@ -107,8 +107,20 @@ def create_user_view():
         str: Result message indicating the success or failure of the user creation.
     """
     console = Console()
-    name = get_valid_name()
-    password = get_valid_password()
+    while True:
+        name = get_valid_name().strip()
+        if not name:
+            console.print("Name cannot be empty or only whitespace.", style="bold red")
+            continue
+        break
+    
+    while True:
+        password = get_valid_password().strip()
+        if not password:
+            console.print("Password cannot be empty or only whitespace.", style="bold red")
+            continue
+        break
+
     department_id = get_valid_id(session, "Please select your department ID: ", get_departments, Department, allow_blank=False)
     result = create_employee(name, password, department_id)
     if result == "User created successfully!":
@@ -129,9 +141,18 @@ def login_view():
         name (str): The name of the user.
         password (str): The password of the user.
     """
+    console = Console()
     while True:
-        name = input("Enter your name: ")
-        password = getpass.getpass("Enter your password: ")
+        name = input("Enter your name: ").strip()
+        if not name:
+            console.print("Name cannot be empty or only whitespace.", style="bold red")
+            continue
+
+        password = getpass.getpass("Enter your password: ").strip()
+        if not password:
+            console.print("Password cannot be empty or only whitespace.", style="bold red")
+            continue
+        
         result = login_employee(name, password)
         if result["message"] == "Login successful":
             session_manager.set_current_token(result["token"])
@@ -167,12 +188,24 @@ def create_new_employee():
         console.print("Please login.", style="bold red")
         return
     
-    name = get_valid_name()
-    password = get_valid_password()
+    while True:
+        name = get_valid_name().strip()
+        if not name:
+            console.print("Name cannot be empty or only whitespace.", style="bold red")
+            continue
+        break
+    
+    while True:
+        password = get_valid_password().strip()
+        if not password:
+            console.print("Password cannot be empty or only whitespace.", style="bold red")
+            continue
+        break
+
     department_id = get_valid_id(session, "Please select the employee department ID: ", get_departments, Department, allow_blank=False)
     
     result = create_employee(name, password, department_id)
-    if result == "User created successfully !":
+    if result == "User created successfully!":
         console.print(result, style="bold green")
     else:
         console.print(result, style="bold red")
