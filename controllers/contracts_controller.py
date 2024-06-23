@@ -4,14 +4,15 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from rich.console import Console
 from rich.table import Table
-from datetime import datetime
+from datetime import datetime, timezone
 from sentry_sdk import capture_message, capture_exception
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-def get_contracts():
+
+def get_contracts(session):
     """
     Show all contracts in a nice table format.
     """
@@ -33,19 +34,21 @@ def get_contracts():
     table.add_column("Contact", justify="center")
 
     for contract in contracts:
-        table.add_row(str(contract.id), str(contract.total_price), str(contract.pending_amount), str(contract.created_date),
-                       str(contract.is_signed), contract.customer.fullname, contract.employee.name)
-    
+        table.add_row(str(contract.id), str(contract.total_price), str(contract.pending_amount),
+                      str(contract.created_date), str(contract.is_signed),
+                      contract.customer.fullname, contract.employee.name)
+
     console.print(table)
 
-def create_contract(total_price, pending_amount, customer_id, employee_id):
+
+def create_contract(session, total_price, pending_amount, customer_id, employee_id):
     """
     Create a contract in the database
     """
     new_contract = Contract(
         total_price=total_price,
         pending_amount=pending_amount,
-        created_date=datetime.utcnow(),
+        created_date=datetime.now(timezone.utc),
         is_signed=False,
         customer_id=customer_id,
         employee_id=employee_id
@@ -54,14 +57,15 @@ def create_contract(total_price, pending_amount, customer_id, employee_id):
     session.commit()
     return "Contract created successfully!"
 
-def update_contract(contract_id, total_price=None, pending_amount=None,
+
+def update_contract(session, contract_id, total_price=None, pending_amount=None,
                     is_signed=None, customer_id=None, employee_id=None):
     """
     Update an existing contract in the database.
     Create a log in sentry when a contract is getting True to is_signed.
     """
     try:
-        contract = session.query(Contract).get(contract_id)
+        contract = session.get(Contract, contract_id)
         if not contract:
             return "Contract not found."
         if total_price is not None:

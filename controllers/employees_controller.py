@@ -11,7 +11,8 @@ engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-def create_employee(name, password, department_id):
+
+def create_employee(session, name, password, department_id):
     """
     Create an employee in the database.
     Create a log in sentry when an employee is created successfully.
@@ -34,9 +35,10 @@ def create_employee(name, password, department_id):
         capture_exception(e)
         return "Error creating employee."
 
-def login_employee(name, password):
+
+def login_employee(session, name, password):
     """
-    
+    Attempts to log in an employee by validating the provided name and password.
     """
     name = name.strip()
     password = password.strip()
@@ -49,7 +51,8 @@ def login_employee(name, password):
     else:
         return {"message": "\n Incorrect password, please try again. \n"}
 
-def get_employees():
+
+def get_employees(session):
     """
     Show all employees in a nice table format.
     """
@@ -68,16 +71,17 @@ def get_employees():
 
     for employee in employees:
         table.add_row(str(employee.id), employee.name, employee.department.name)
-    
+
     console.print(table)
 
-def update_employee(employee_id, name=None, password=None, department_id=None):
+
+def update_employee(session, employee_id, name=None, password=None, department_id=None):
     """
     Update an existing employee in the database.
     Create a log in sentry when an employee is updated successfully.
     """
     try:
-        employee = session.query(Employee).get(employee_id)
+        employee = session.get(Employee, employee_id)
         if not employee:
             return "Employee not found."
         if name:
@@ -94,11 +98,12 @@ def update_employee(employee_id, name=None, password=None, department_id=None):
         capture_exception(e)
         return "Error updating employee."
 
-def delete_employee(employee_id):
+
+def delete_employee(session, employee_id):
     """
     Delete an employee in the database.
     """
-    employee = session.query(Employee).get(employee_id)
+    employee = session.get(Employee, employee_id)
     if not employee:
         return "Employee not found."
     session.delete(employee)

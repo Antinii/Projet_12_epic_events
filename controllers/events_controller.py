@@ -9,7 +9,9 @@ engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-def create_event(name, start_date, end_date, location, attendees, notes, contract_id, customer_id, employee_id):
+
+def create_event(session, name, start_date, end_date, location, attendees, notes,
+                 contract_id, customer_id, employee_id):
     """
     Function creating an event in the database.
     """
@@ -28,7 +30,8 @@ def create_event(name, start_date, end_date, location, attendees, notes, contrac
     session.commit()
     return "Event created successfully!"
 
-def get_events():
+
+def get_events(session):
     """
     Show all events in a nice table format.
     """
@@ -38,7 +41,7 @@ def get_events():
     if not events:
         print("No events found.")
         return
-    
+
     table = Table(title="List of all events", show_header=True, header_style="magenta", show_lines=True)
     table.add_column("ID", justify="center")
     table.add_column("Name", justify="center")
@@ -52,17 +55,19 @@ def get_events():
     table.add_column("Employee contact", justify="center")
 
     for event in events:
-        table.add_row(str(event.id), event.name, str(event.start_date), str(event.end_date), event.location,
-                       str(event.attendees), event.notes, str(event.contract_id), event.customer.fullname, event.employee.name)
-    
+        table.add_row(str(event.id), event.name, str(event.start_date), str(event.end_date),
+                      event.location, str(event.attendees), event.notes, str(event.contract_id),
+                      event.customer.fullname, event.employee.name)
+
     console.print(table)
 
-def update_event(event_id, name=None, start_date=None, end_date=None, location=None,
+
+def update_event(session, event_id, name=None, start_date=None, end_date=None, location=None,
                  attendees=None, notes=None, contract_id=None, customer_id=None, employee_id=None):
     """
     Update an existing event in the database.
     """
-    event = session.query(Event).get(event_id)
+    event = session.get(Event, event_id)
     if not event:
         return "Event not found."
     if name is not None:

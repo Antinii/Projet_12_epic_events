@@ -5,6 +5,7 @@ import config.session_manager as session_manager
 from rich.console import Console
 from rich.text import Text
 
+
 def permission_required(permission):
     """
     A decorator to check if a user has the required permission to execute a function.
@@ -16,6 +17,7 @@ def permission_required(permission):
         function: The wrapped function which includes the permission check.
     """
     console = Console()
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):

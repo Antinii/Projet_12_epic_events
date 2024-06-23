@@ -2,10 +2,10 @@ import sys
 import os
 from rich.console import Console
 from rich.table import Table
+from views.employees_view import create_user_view, login_view
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
-from views.employees_view import create_user_view, login_view
 
 def main():
     """
@@ -16,8 +16,9 @@ def main():
     while True:
         table = Table(show_header=True, header_style="bold green")
 
-        table.add_column("Welcome to the Epic Events app, please select an option:", justify="left", style="cyan", no_wrap=True)
-       
+        table.add_column("Welcome to the Epic Events app, please select an option:",
+                         justify="left", style="cyan", no_wrap=True)
+
         table.add_row("1. Create an user")
         table.add_row("2. Login")
         table.add_row("3. Exit the app")

@@ -1,7 +1,7 @@
 import getpass
-from controllers.employees_controller import create_employee, get_employees
 from controllers.departments_controller import get_departments
-from controllers.employees_controller import login_employee, create_employee, update_employee, delete_employee
+from controllers.employees_controller import (create_employee, login_employee, get_employees,
+                                              update_employee, delete_employee)
 from models.employees import Employee
 from models.departments import Department
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +21,7 @@ engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
+
 def manage_employees_menu():
     """
     Display for employees menu.
@@ -30,7 +31,7 @@ def manage_employees_menu():
     while True:
         table = Table(show_header=True, header_style="bold green")
         table.add_column("Employees menu, please select an option: ", justify="left", style="cyan", no_wrap=True)
-        
+
         table.add_row("1. Create a new employee")
         table.add_row("2. Show all the employees")
         table.add_row("3. Update an employee")
@@ -44,7 +45,7 @@ def manage_employees_menu():
         if choice == '1':
             create_new_employee()
         elif choice == '2':
-            get_employees()
+            get_employees(session)
         elif choice == '3':
             update_employee_view()
         elif choice == '4':
@@ -53,6 +54,7 @@ def manage_employees_menu():
             break
         else:
             console.print("\nInvalid choice, try again\n", style="bold red")
+
 
 def logged_in_menu(name):
     """
@@ -64,7 +66,7 @@ def logged_in_menu(name):
         table = Table(show_header=True, header_style="bold green")
 
         table.add_column(f"Welcome {name}, please choose an option:", justify="left", style="cyan", no_wrap=True)
-        
+
         table.add_row("1. Manage Employees")
         table.add_row("2. Manage Customers")
         table.add_row("3. Manage Contracts")
@@ -89,12 +91,13 @@ def logged_in_menu(name):
         else:
             console.print("\nInvalid choice, try again\n", style="bold red")
 
+
 def create_user_view():
     """
     Display a form to create a new user and save it to the database.
 
-    This function prompts the user to input their name, password, and department. 
-    It ensures the password is confirmed correctly, lists the available departments, 
+    This function prompts the user to input their name, password, and department.
+    It ensures the password is confirmed correctly, lists the available departments,
     and calls create_employee to save the new user's details to the database.
 
     Inputs:
@@ -113,7 +116,7 @@ def create_user_view():
             console.print("Name cannot be empty or only whitespace.", style="bold red")
             continue
         break
-    
+
     while True:
         password = get_valid_password().strip()
         if not password:
@@ -121,20 +124,22 @@ def create_user_view():
             continue
         break
 
-    department_id = get_valid_id(session, "Please select your department ID: ", get_departments, Department, allow_blank=False)
-    result = create_employee(name, password, department_id)
+    department_id = get_valid_id(session, "Please select your department ID: ",
+                                 get_departments, Department, allow_blank=False)
+    result = create_employee(session, name, password, department_id)
     if result == "User created successfully!":
         console.print(result, style="bold green")
     else:
         console.print(result, style="bold red")
 
+
 def login_view():
     """
     Display the login form and handle user authentication.
 
-    This function prompts the user to input their name and password. It calls the 
-    login_employee function to verify the credentials. If the login is successful, 
-    it sets the current session token and displays the main menu for the logged-in user. 
+    This function prompts the user to input their name and password. It calls the
+    login_employee function to verify the credentials. If the login is successful,
+    it sets the current session token and displays the main menu for the logged-in user.
     If the login fails, it displays an error message and prompts the user to try again.
 
     Inputs:
@@ -152,8 +157,8 @@ def login_view():
         if not password:
             console.print("Password cannot be empty or only whitespace.", style="bold red")
             continue
-        
-        result = login_employee(name, password)
+
+        result = login_employee(session, name, password)
         if result["message"] == "Login successful":
             session_manager.set_current_token(result["token"])
             # print(f"Token: {session_manager.get_current_token()}") # Check if the token is generated correctly
@@ -162,13 +167,14 @@ def login_view():
         else:
             print(result["message"])
 
+
 @permission_required('create_employees')
 def create_new_employee():
     """
     Create a new employee in the database.
 
-    This function prompts the user to input the necessary information to create a new employee, 
-    including name, password, and department ID. It then calls the create_employee function 
+    This function prompts the user to input the necessary information to create a new employee,
+    including name, password, and department ID. It then calls the create_employee function
     to save the new employee to the database.
 
     Permissions:
@@ -187,14 +193,14 @@ def create_new_employee():
     if not user:
         console.print("Please login.", style="bold red")
         return
-    
+
     while True:
         name = get_valid_name().strip()
         if not name:
             console.print("Name cannot be empty or only whitespace.", style="bold red")
             continue
         break
-    
+
     while True:
         password = get_valid_password().strip()
         if not password:
@@ -202,21 +208,23 @@ def create_new_employee():
             continue
         break
 
-    department_id = get_valid_id(session, "Please select the employee department ID: ", get_departments, Department, allow_blank=False)
-    
-    result = create_employee(name, password, department_id)
+    department_id = get_valid_id(session, "Please select the employee department ID: ",
+                                 get_departments, Department, allow_blank=False)
+
+    result = create_employee(session, name, password, department_id)
     if result == "User created successfully!":
         console.print(result, style="bold green")
     else:
         console.print(result, style="bold red")
+
 
 @permission_required('update_employees')
 def update_employee_view():
     """
     Update an existing employee in the database.
 
-    This function lists the current employees and prompts the user to select an employee to update. 
-    It then prompts the user to input new values for the employee's name, password, and department ID, 
+    This function lists the current employees and prompts the user to select an employee to update.
+    It then prompts the user to input new values for the employee's name, password, and department ID,
     and calls the update_employee function to save the changes to the database.
 
     Permissions:
@@ -236,10 +244,10 @@ def update_employee_view():
     if not user:
         console.print("Please login.", style="bold red")
         return
-    
+
     while True:
         print("Choose the employee to update:")
-        get_employees()
+        get_employees(session)
 
         employee_id = get_valid_int("Enter the employee ID to update: ")
         employee = session.query(Employee).get(employee_id)
@@ -266,20 +274,22 @@ def update_employee_view():
                                      get_departments, Department, allow_blank=True, current_id=employee.department_id)
 
         department_id = int(department_id) if department_id else None
-        result = update_employee(employee_id, name if name else None, password if password else None, department_id)
+        result = update_employee(session, employee_id, name if name else None,
+                                 password if password else None, department_id)
         if result == "Employee updated successfully!":
             console.print(result, style="bold green")
         else:
             console.print(result, style="bold red")
         break
 
+
 @permission_required('delete_employees')
 def delete_employee_view():
     """
     Delete an existing employee from the database.
 
-    This function lists the current employees and prompts the user to select an employee to delete. 
-    It then asks for confirmation before calling the delete_employee function to remove the employee 
+    This function lists the current employees and prompts the user to select an employee to delete.
+    It then asks for confirmation before calling the delete_employee function to remove the employee
     from the database.
 
     Permissions:
@@ -295,7 +305,7 @@ def delete_employee_view():
 
     while True:
         print("List of all employees:")
-        get_employees()
+        get_employees(session)
 
         employee_id = (input("Enter the employee ID to delete: "))
         if not employee_id.isdigit():
@@ -310,7 +320,7 @@ def delete_employee_view():
 
         confirmation = input(f"Are you sure you want to delete the employee with ID {employee_id}? (yes/no): ")
         if confirmation.lower() == 'yes':
-            result = delete_employee(employee_id)
+            result = delete_employee(session, employee_id)
             console.print(result, style="bold green")
         else:
             console.print("Deletion cancelled.", style="bold red")

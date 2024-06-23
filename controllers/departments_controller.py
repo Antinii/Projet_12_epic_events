@@ -9,7 +9,8 @@ engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-def get_departments():
+
+def get_departments(session):
     """
     Fetch and return all departments from the database.
 
@@ -22,7 +23,7 @@ def get_departments():
     if not departments:
         print("No departments found.")
         return
-    
+
     table = Table(title="List of all Departments", show_header=True, header_style="magenta", show_lines=True)
 
     table.add_column("ID", justify="center")
