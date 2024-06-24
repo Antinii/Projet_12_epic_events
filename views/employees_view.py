@@ -137,9 +137,9 @@ def login_view():
     """
     Display the login form and handle user authentication.
 
-    This function prompts the user to input their name and password. It calls the
-    login_employee function to verify the credentials. If the login is successful,
-    it sets the current session token and displays the main menu for the logged-in user.
+    This function prompts the user to input their name and checks if it exists in the database.
+    If the name exists, it then prompts for the password and verifies the credentials.
+    If the login is successful, it sets the current session token and displays the main menu for the logged-in user.
     If the login fails, it displays an error message and prompts the user to try again.
 
     Inputs:
@@ -153,19 +153,25 @@ def login_view():
             console.print("Name cannot be empty or only whitespace.", style="bold red")
             continue
 
-        password = getpass.getpass("Enter your password: ").strip()
-        if not password:
-            console.print("Password cannot be empty or only whitespace.", style="bold red")
+        employee = session.query(Employee).filter_by(name=name).first()
+        if not employee:
+            console.print("\nUsername does not exist, please try again.\n", style="bold red")
             continue
 
-        result = login_employee(session, name, password)
-        if result["message"] == "Login successful":
-            session_manager.set_current_token(result["token"])
-            # print(f"Token: {session_manager.get_current_token()}") # Check if the token is generated correctly
-            logged_in_menu(name)
-            break
-        else:
-            print(result["message"])
+        while True:
+            password = getpass.getpass("Enter your password: ").strip()
+            if not password:
+                console.print("Password cannot be empty or only whitespace.", style="bold red")
+                continue
+            
+            result = login_employee(session, name, password)
+            if result["message"] == "Login successful":
+                session_manager.set_current_token(result["token"])
+                # print(f"Token: {session_manager.get_current_token()}") # Check if the token is generated correctly
+                logged_in_menu(name)
+                return
+            else:
+                console.print(result["message"], style="bold red")
 
 
 @permission_required('create_employees')
